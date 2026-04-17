@@ -1,0 +1,46 @@
+{
+    "periodos": [
+        {
+            "desde": "20260330",
+            "hasta": "20260403"
+        },
+        {
+            "desde": "20260406",
+            "hasta": "20260410"
+        }
+    ],
+    "materiales": [
+        {
+            "id": "000000000000080063",
+            "nomprod": "DIESEL 50",
+            "precios": [
+                185.2,
+                184.84
+            ]
+        },
+        {
+            "id": "000000000000060003",
+            "nomprod": "CRUDO BRENT",
+            "precios": [
+                141.37,
+                144.42
+            ]
+        },
+        {
+            "id": "000000000000070019",
+            "nomprod": "GASOLINA SUPER ( SUPERIOR )",
+            "precios": [
+                144.21,
+                143.84
+            ]
+        },
+        {
+            "id": "000000000000070092",
+            "nomprod": "GASOLINA PLUS 91 ( REGULAR )",
+            "precios": [
+                138.94,
+                138.94
+            ]
+        }
+    ]
+}
