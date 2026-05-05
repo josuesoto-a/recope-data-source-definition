@@ -5,7 +5,7 @@ from datetime import datetime
 
 URL = "https://api.recope.go.cr/ventas/precio/plantel"
 
-def fetch_data():
+def fetch_plantel_prices():
 
     try:
 
@@ -33,4 +33,4 @@ def fetch_data():
 
 if __name__ == "__main__":
 
-    fetch_data()
+    fetch_plantel_prices()

@@ -3,7 +3,7 @@ import csv
 from pathlib import Path
 
 
-def transform_to_csv(input_path: Path, output_path: Path):
+def transform_international_prices(input_path: Path, output_path: Path):
 
     with open(input_path, "r") as file:
         data = json.load(file)
@@ -46,4 +46,4 @@ if __name__ == "__main__":
         "data/processed/international_prices.csv"
     )
 
-    transform_to_csv(INPUT_PATH, OUTPUT_PATH)
+    transform_international_prices(INPUT_PATH, OUTPUT_PATH)
