@@ -42,36 +42,33 @@ The pipeline follows a standard data engineering workflow:
 
    * Merge all datasets into a unified table
    * Normalize columns across sources
+   * Introduce `price_unit` to resolve unit ambiguity
+   * Normalize prices to CRC (`price_crc`)
 
 ---
 
 ## Project Structure
 
-```
 recope-data-pipeline/
 
 data/
-    raw/
-    processed/
+raw/
+processed/
 
 scripts/
-    fetch/
-    transform/
+fetch/
+transform/
 
 README.md
 requirements.txt
 .gitignore
-```
 
 ---
 
 ## Final Output
 
 **File:**
-
-```
 data/processed/prices_modeled.csv
-```
 
 **Schema:**
 
@@ -81,8 +78,60 @@ data/processed/prices_modeled.csv
 * price
 * currency
 * unit
+* price_unit
+* price_crc
 * product_id
 * ingestion_timestamp
+
+---
+
+## Current Status
+
+Pipeline fully implemented:
+
+* Data ingestion from 3 real-world sources
+* Independent cleaning pipelines per source
+* Data transformation to structured CSV format
+* Unified data modeling across sources
+* Currency normalization (CRC)
+* Unit handling via `price_unit`
+* End-to-end orchestration via `run_pipeline.py`
+
+---
+
+## Design Decisions
+
+The modeled dataset includes multiple units (L, KG, PL) and currencies (CRC, USD).
+
+At this stage:
+
+* No physical unit conversion is applied (e.g., KG → L)
+* International prices do not have a defined unit equivalence with local prices
+* Currency normalization (USD → CRC) is applied, but unit comparability is not enforced
+
+This design preserves data fidelity and avoids introducing incorrect assumptions.
+
+**Implication:**
+
+The dataset is suitable for:
+
+* Data storage
+* Exploration
+* Auditing
+
+But not yet for:
+
+* Direct price comparison across all sources
+
+---
+
+## Pending Improvements
+
+* Create analytics-ready dataset with comparable units (e.g., only `CRC_per_L`)
+* Implement structured logging system
+* Add data quality and unit tests
+* Introduce orchestration tools (Airflow / Prefect)
+* Automate scheduling (cron or workflow engine)
 
 ---
 
@@ -92,6 +141,7 @@ data/processed/prices_modeled.csv
 * Requests
 * JSON
 * CSV
+* Pandas
 * Git / GitHub
 
 ---
@@ -99,33 +149,5 @@ data/processed/prices_modeled.csv
 ## How to Run
 
 ```bash
-# Fetch data
-python scripts/fetch/fetch_consumer_prices.py
-python scripts/fetch/fetch_international_prices.py
-python scripts/fetch/fetch_plantel_prices.py
-
-# Clean data
-python scripts/transform/clean_consumer_prices.py
-python scripts/transform/clean_international_prices.py
-python scripts/transform/clean_plantel_prices.py
-
-# Transform data
-python scripts/transform/transform_consumer_prices.py
-python scripts/transform/transform_international_prices.py
-python scripts/transform/transform_plantel_prices.py
-
-# Build final dataset
-python scripts/transform/model_prices_data.py
-```
-
----
-
-## Future Improvements
-
-* Add pipeline orchestration (Airflow / Prefect)
-* Implement logging system
-* Add unit and data quality tests
-* Load data into a database (PostgreSQL / BigQuery)
-* Automate scheduling
-
----
+# Run full pipeline
+python run_pipeline.py
