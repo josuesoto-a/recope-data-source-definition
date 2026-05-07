@@ -2,15 +2,9 @@ import json
 from datetime import datetime
 from pathlib import Path
 
+from scripts.utils.logger import get_logger
 
-def get_latest_file(directory: str, pattern: str = "plantel_prices*.json") -> Path:
-
-    files = list(Path(directory).glob(pattern))
-
-    if not files:
-        raise FileNotFoundError("No plantel price files found")
-
-    return max(files, key=lambda f: f.stat().st_mtime)
+logger = get_logger("clean_plantel_prices")
 
 
 def format_date(date_str, fmt):
@@ -19,69 +13,69 @@ def format_date(date_str, fmt):
 
 def clean_plantel_prices(input_path: Path, output_path: Path):
 
-    with open(input_path, "r") as file:
-        raw_data = json.load(file)
+    try:
+        logger.info(f"Starting cleaning | input={input_path}")
 
-    cleaned_data = []
+        with open(input_path, "r", encoding="utf-8") as file:
+            raw_data = json.load(file)
 
-    for record in raw_data:
+        cleaned_data = []
+        errors = 0
 
-        try:
-            cleaned_record = {
+        for i, record in enumerate(raw_data):
 
-                "date":
-                    format_date(record["fecha"], "%Y%m%d"),
+            try:
+                cleaned_record = {
+                    "date": format_date(record["fecha"], "%Y%m%d"),
 
-                "product":
-                    record["nomprod"].split("(")[0].strip(),
+                    "product": record["nomprod"].split("(")[0].strip(),
 
-                "price_crc":
-                    float(record["preciototal"].strip()),
+                    "price_crc": float(record["preciototal"].strip()),
 
-                "tax_crc":
-                    float(record["impuesto"].strip()),
+                    "tax_crc": float(record["impuesto"].strip()),
 
-                "base_price_crc":
-                    float(record["precsinimp"].strip()),
+                    "base_price_crc": float(record["precsinimp"].strip()),
 
-                "unit":
-                    record["tipo"],
+                    "unit": record["tipo"],
 
-                "product_id":
-                    record["id"],
+                    "product_id": record["id"],
 
-                "update_date":
-                    format_date(record["fechaupd"], "%Y/%m/%d"),
+                    "update_date": format_date(record["fechaupd"], "%Y/%m/%d"),
 
-                "source":
-                    "plantel",
+                    "source": "plantel",
 
-                "ingestion_timestamp":
-                    datetime.utcnow().isoformat()
-            }
+                    "ingestion_timestamp": datetime.utcnow().isoformat()
+                }
 
-            cleaned_data.append(cleaned_record)
+                cleaned_data.append(cleaned_record)
 
-        except Exception as e:
-            print(f"Skipping record: {e}")
+            except Exception as e:
+                errors += 1
+                logger.warning(
+                    f"Record skipped | index={i} | error={e} | record={record}"
+                )
 
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with open(output_path, "w") as file:
-        json.dump(cleaned_data, file, indent=4)
+        with open(output_path, "w", encoding="utf-8") as file:
+            json.dump(cleaned_data, file, indent=4, ensure_ascii=False)
 
-    print(f"Records processed: {len(cleaned_data)}")
-    print(f"Output: {output_path}")
+        logger.info(
+            f"Cleaning completed | output={output_path} | "
+            f"processed={len(cleaned_data)} | errors={errors}"
+        )
+
+    except Exception as e:
+        logger.exception(f"Fatal error in clean_plantel_prices: {e}")
+        raise
 
 
 if __name__ == "__main__":
 
     RAW_DIR = "data/raw"
+    files = list(Path(RAW_DIR).glob("plantel_prices*.json"))
+    latest_file = max(files, key=lambda f: f.stat().st_mtime)
 
-    latest_file = get_latest_file(RAW_DIR)
-
-    OUTPUT_PATH = Path(
-        "data/processed/plantel_prices_cleaned.json"
-    )
+    OUTPUT_PATH = Path("data/processed/plantel_prices_cleaned.json")
 
     clean_plantel_prices(latest_file, OUTPUT_PATH)

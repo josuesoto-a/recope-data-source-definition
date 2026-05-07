@@ -8,6 +8,31 @@ The pipeline integrates multiple real-world data sources and produces a unified 
 
 ---
 
+## Pipeline Architecture
+
+```mermaid
+flowchart LR
+
+A1[Consumer Prices API] --> B[Raw JSON Storage]
+A2[International Prices API] --> B
+A3[Plantel Prices API] --> B
+
+B --> C1[Cleaning: Consumer]
+B --> C2[Cleaning: International]
+B --> C3[Cleaning: Plantel]
+
+C1 --> D[Transformation to CSV]
+C2 --> D
+C3 --> D
+
+D --> E[Data Modeling Layer]
+
+E --> F[Unified Dataset]
+F --> G[prices_modeled.csv]
+```
+
+---
+
 ## Data Sources
 
 * Consumer Prices (local fuel prices in CRC)
@@ -18,7 +43,7 @@ All data is retrieved via REST APIs and stored in raw JSON format.
 
 ---
 
-## Pipeline Architecture
+## Pipeline Workflow
 
 The pipeline follows a standard data engineering workflow:
 
@@ -49,26 +74,28 @@ The pipeline follows a standard data engineering workflow:
 
 ## Project Structure
 
+```
 recope-data-pipeline/
 
-data/
-raw/
-processed/
+ data/
+   raw/
+   processed/
 
-scripts/
-fetch/
-transform/
+ scripts/
+   fetch/
+   transform/
 
-README.md
-requirements.txt
-.gitignore
+ README.md
+ requirements.txt
+ .gitignore
+```
 
 ---
 
 ## Final Output
 
 **File:**
-data/processed/prices_modeled.csv
+`data/processed/prices_modeled.csv`
 
 **Schema:**
 
@@ -151,3 +178,4 @@ But not yet for:
 ```bash
 # Run full pipeline
 python run_pipeline.py
+```
