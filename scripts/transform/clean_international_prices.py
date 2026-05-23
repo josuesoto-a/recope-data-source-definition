@@ -2,15 +2,9 @@ import json
 from datetime import datetime
 from pathlib import Path
 
+from scripts.utils.logger import get_logger
 
-def get_latest_file(directory: str, pattern: str = "international_prices*.json") -> Path:
-
-    files = list(Path(directory).glob(pattern))
-
-    if not files:
-        raise FileNotFoundError("No international price files found")
-
-    return max(files, key=lambda f: f.stat().st_mtime)
+logger = get_logger("clean_international_prices")
 
 
 def format_date(date_str):
@@ -18,75 +12,81 @@ def format_date(date_str):
 
 
 def clean_international_prices(input_path: Path, output_path: Path):
+    """
+    Clean international prices data.
+    """
 
-    with open(input_path, "r") as file:
-        raw_data = json.load(file)
+    try:
+        logger.info(f"Starting cleaning | input={input_path}")
 
-    periodos = raw_data.get("periodos", [])
-    materiales = raw_data.get("materiales", [])
+        with open(input_path, "r", encoding="utf-8") as file:
+            raw_data = json.load(file)
 
-    cleaned_data = []
+        periodos = raw_data.get("periodos", [])
+        materiales = raw_data.get("materiales", [])
 
-    for material in materiales:
+        cleaned_data = []
+        errors = 0
 
-        product = material["nomprod"].split("(")[0].strip()
-        product_id = material["id"]
-        precios = material.get("precios", [])
-
-        for i, precio in enumerate(precios):
+        for material_idx, material in enumerate(materiales):
 
             try:
-                periodo = periodos[i]
+                product = material["nomprod"].split("(")[0].strip()
+                product_id = material["id"]
+                precios = material.get("precios", [])
 
-                cleaned_record = {
+                for i, precio in enumerate(precios):
 
-                    "date_start":
-                        format_date(periodo["desde"]),
+                    try:
+                        periodo = periodos[i]
 
-                    "date_end":
-                        format_date(periodo["hasta"]),
+                        cleaned_record = {
+                            "date_start": format_date(periodo["desde"]),
+                            "date_end": format_date(periodo["hasta"]),
+                            "product": product,
+                            "price_usd": float(precio),
+                            "product_id": product_id,
+                            "currency": "USD",
+                            "source": "international",
+                            "ingestion_timestamp": datetime.utcnow().isoformat()
+                        }
 
-                    "product":
-                        product,
+                        cleaned_data.append(cleaned_record)
 
-                    "price_usd":
-                        float(precio),
-
-                    "product_id":
-                        product_id,
-
-                    "currency":
-                        "USD",
-
-                    "source":
-                        "international",
-
-                    "ingestion_timestamp":
-                        datetime.utcnow().isoformat()
-                }
-
-                cleaned_data.append(cleaned_record)
+                    except Exception as e:
+                        errors += 1
+                        logger.warning(
+                            f"Record skipped | material_index={material_idx} | "
+                            f"price_index={i} | error={e} | material={material}"
+                        )
 
             except Exception as e:
-                print(f"Skipping record: {e}")
+                errors += 1
+                logger.warning(
+                    f"Material skipped | index={material_idx} | error={e} | material={material}"
+                )
 
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with open(output_path, "w") as file:
-        json.dump(cleaned_data, file, indent=4)
+        with open(output_path, "w", encoding="utf-8") as file:
+            json.dump(cleaned_data, file, indent=4, ensure_ascii=False)
 
-    print(f"Records processed: {len(cleaned_data)}")
-    print(f"Output: {output_path}")
+        logger.info(
+            f"Cleaning completed | output={output_path} | "
+            f"processed={len(cleaned_data)} | errors={errors}"
+        )
+
+    except Exception as e:
+        logger.exception(f"Fatal error in clean_international_prices: {e}")
+        raise
 
 
 if __name__ == "__main__":
 
     RAW_DIR = "data/raw"
+    files = list(Path(RAW_DIR).glob("international_prices*.json"))
+    latest_file = max(files, key=lambda f: f.stat().st_mtime)
 
-    latest_file = get_latest_file(RAW_DIR)
-
-    OUTPUT_PATH = Path(
-        "data/processed/international_prices_cleaned.json"
-    )
+    OUTPUT_PATH = Path("data/processed/international_prices_cleaned.json")
 
     clean_international_prices(latest_file, OUTPUT_PATH)

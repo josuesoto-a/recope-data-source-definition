@@ -69,7 +69,10 @@ The pipeline follows a modular data engineering workflow:
 ### 1. Data Ingestion
 
 - Fetch data from RECOPE APIs
-- Store raw JSON snapshots in `data/raw/`
+- Store raw JSON snapshots in `data/raw/` with a timestamp suffix (e.g. `consumer_prices_20260507_101824.json`)
+- Each pipeline run appends new files — old files are not deleted automatically
+- The pipeline always processes the most recently created file per source
+
 
 ### 2. Data Cleaning
 
@@ -116,9 +119,22 @@ logs/
 
 scripts/
 ├── fetch/
+│   ├── fetch_consumer_prices.py
+│   ├── fetch_international_prices.py
+│   └── fetch_plantel_prices.py
 ├── transform/
+│   ├── clean_consumer_prices.py
+│   ├── clean_international_prices.py
+│   ├── clean_plantel_prices.py
+│   ├── transform_consumer_prices.py
+│   ├── transform_international_prices.py
+│   ├── transform_plantel_prices.py
+│   └── model_prices_data.py
 ├── quality/
+│   └── validate_prices.py
 └── utils/
+    └── logger.py
+
 
 README.md
 requirements.txt
@@ -150,6 +166,22 @@ data/processed/prices_modeled.csv
 | price_crc | Normalized CRC price |
 | product_id | Product identifier |
 | ingestion_timestamp | Pipeline ingestion timestamp |
+
+### Intermediate Outputs
+
+The pipeline also produces the following intermediate files in `data/processed/`:
+
+| File | Description |
+|---|---|
+| `consumer_prices_cleaned.json` | Cleaned consumer prices, output of the cleaning step |
+| `international_prices_cleaned.json` | Cleaned international prices, output of the cleaning step |
+| `plantel_prices_cleaned.json` | Cleaned plantel prices, output of the cleaning step |
+| `consumer_prices.csv` | Consumer prices in CSV format, output of the transformation step |
+| `international_prices.csv` | International prices in CSV format, output of the transformation step |
+| `plantel_prices.csv` | Plantel prices in CSV format, output of the transformation step |
+
+These files are not the final output but are preserved for debugging and auditability.
+
 
 ---
 
@@ -197,6 +229,13 @@ Current design principles:
 - International prices preserve original market units
 - Currency normalization (USD → CRC) is applied separately
 - Data fidelity is prioritized over forced comparability
+
+### Currency Conversion Note
+
+USD to CRC conversion uses a fixed exchange rate (`USD_TO_CRC = 540`).
+This rate is hardcoded and does not reflect real-time market rates.
+Price comparisons involving international prices should account for this limitation.
+
 
 ### Implications
 
@@ -275,5 +314,5 @@ Generate prices_modeled.csv
 Current stable release:
 
 ```text
-v0.1
+v1.0
 ```
